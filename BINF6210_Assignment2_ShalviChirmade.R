@@ -1,6 +1,7 @@
 #### BINF 6210 - Assignment 2 - Due Friday October 29, 2021 by 5 pm ----
 # By Shalvi Chirmade
-
+# Secondary author: David Jamieson
+# Tertiary authors: Emily Maier, Eden Blanchard
 
 ### HOW DOES GEOGRAPHY RELATE TO DIVERSIFICATION OF THE GENUS CANIS?
 
@@ -228,12 +229,14 @@ unique(dfNCBI_CanisCytB$Species_Name)
 #It has been removed.
 
 #Remove the third word in Species_Name if it is not part of the taxonomic identity.
-dfNCBI_CanisCytB <- dfNCBI_CanisCytB %>%
-  mutate(Species_Name = str_remove(Species_Name, " isolate")) %>%
-  mutate(Species_Name = str_remove(Species_Name, " haplotype")) %>%
-  mutate(Species_Name = str_remove(Species_Name, " cytochrome")) %>%
-  mutate(Species_Name = str_remove(Species_Name, " mitochondrion")) %>%
-  mutate(Species_Name = str_remove(Species_Name, " voucher"))
+dfNCBI_CanisCytB$Species_Name <- str_remove(dfNCBI_CanisCytB$Species_Name, " isolate| haplotype| cytochrome| mitochondrion| voucher")
+
+#dfNCBI_CanisCytB <- dfNCBI_CanisCytB %>%
+#  mutate(Species_Name = str_remove(Species_Name, " isolate")) %>%
+#  mutate(Species_Name = str_remove(Species_Name, " haplotype")) %>%
+#  mutate(Species_Name = str_remove(Species_Name, " cytochrome")) %>%
+#  mutate(Species_Name = str_remove(Species_Name, " mitochondrion")) %>%
+#  mutate(Species_Name = str_remove(Species_Name, " voucher"))
 #Added a space before the word so it takes away the end space in the column.
 
 #Find a way to do this all in one line. The next few lines show what doesn't work.
@@ -271,22 +274,42 @@ View(dfSpecies)
 
 #There are 411 sequences of Canis latrans. After aligning all these sequences, I noticed that they were very similar. I checked a few of the accession numbers on the web browser to make sure they match to Canis latrans. To have a smaller data set and to allow for better alignment, I will be randomly selecting 20 records from this species to better align my sequences for the final analysis. 
 
+#DJ. Decided to write this as a function. This adds predictability to the code allowing the user to easily change the species or sample size number. Could also use this function for any data frames with a column named "Species_Name".
+sample.species <- function(df, species, n){
+  #DJ. Filter only the species we're interested in.
+  dfsample <- df %>%
+    filter(Species_Name == species)
+  #DJ. Sample for the number of records we want.
+  dfspec <- sample_n(tbl = dfsample, size = n)
+  #DJ. Create a data frame with all other records
+  dfrest <- df %>%
+    filter(!Species_Name == species)
+  #DJ. Rbind the two data frames together
+  df <- rbind(dfspec, dfrest)
+  #DJ. Return the new data frame.
+  return(df)
+  
+}
+set.seed(2021)
+#DJ. Limit the number of records to 20 for the species Canis latrans
+dfNCBI_CanisCytB <- sample.species(df = dfNCBI_CanisCytB, species = "Canis latrans", n = 20)
+
 
 #First create a data frame with just Canis latrans and then randomly select 20 records. Setting seed so the records will be reproducible.
-dfCanislatrans <- dfNCBI_CanisCytB %>%
-  filter(Species_Name == "Canis latrans")
-
-set.seed(2021)
-dfCanislatrans <- dfCanislatrans %>%
-  sample_n(20)
-
-dim(dfCanislatrans)
-unique(dfCanislatrans$Species_Name)
-
-#Next, create a second data frame with all the other species records.
-dfOthers <- dfNCBI_CanisCytB %>%
-  filter(!Species_Name == "Canis latrans")
-View(dfOthers)
+#dfCanislatrans <- dfNCBI_CanisCytB %>%
+#  filter(Species_Name == "Canis latrans")
+#
+#set.seed(2021)
+#dfCanislatrans <- dfCanislatrans %>%
+#  sample_n(20)
+#
+#dim(dfCanislatrans)
+#unique(dfCanislatrans$Species_Name)
+#
+##Next, create a second data frame with all the other species records.
+#dfOthers <- dfNCBI_CanisCytB %>%
+#  filter(!Species_Name == "Canis latrans")
+#View(dfOthers)
 
 #Now merge these two data frames and overwrite previously created dfNCBI_CanisCytB.
 dfNCBI_CanisCytB <- base::rbind(dfCanislatrans, dfOthers)
@@ -348,12 +371,14 @@ dim(dfGBIF_Subset)
 class(dfGBIF_Subset)
 
 #Check to see if all records have the same kingdom, phylum, class, order, family and genus. Comment on anomalies.
-unique(dfGBIF_Subset$kingdom)
-unique(dfGBIF_Subset$phylum)
-unique(dfGBIF_Subset$class)
-unique(dfGBIF_Subset$order)
-unique(dfGBIF_Subset$family)
-unique(dfGBIF_Subset$genus)
+apply(X = dfGBIF_Subset[, c("kingdom", "phylum", "class", "order", "family", "genus")], MARGIN = 2, FUN = unique)
+
+#unique(dfGBIF_Subset$kingdom)
+#unique(dfGBIF_Subset$phylum)
+#unique(dfGBIF_Subset$class)
+#unique(dfGBIF_Subset$order)
+#unique(dfGBIF_Subset$family)
+#unique(dfGBIF_Subset$genus)
 #There are no anomalies or even NAs!
 
 
@@ -500,7 +525,7 @@ length(CytB_alignment[[1]])
 #After the alignment, this particular sequence went from 369 sequences to 566. As seen in the visual alignment, there were multiple gaps added at the beginning, middle and end of the sequence to allow for species gene variability.
 
 #Let's look at the mean number of gaps in the alignment.
-mean(unlist(lapply(CytB_alignment, str_count, "-"))) #203.026
+mean(unlist(lapply(X = CytB_alignment, FUN = str_count, pattern = "-"))) #203.026
 #We can see that the alignment has caused an average of 203 gaps being added to each sequence. 
 
 #I also viewed this sequence alignment in MEGA; I can see a lot of variability in about ten sequences out of the total. Even after translation, a huge variety of amino acids are seen for those particular sequences.
@@ -575,6 +600,9 @@ CytB_alignment2_DNAbin <- as.DNAbin(CytB_alignment2)
 #Create a distance matrix using the chosen model. 
 CytB_distMatrix <- dist.dna(CytB_alignment2_DNAbin, model = "K80", as.matrix = TRUE, pairwise.deletion = TRUE) #pairwise deletion - missing data will be ignored in a pairwise fashion, can lose a lot of information if you use complete deletions
 
+#DJ. TN93 is a more sophisticated model than K80. It may change the clustering results for our data
+TN93_distMatrix <- dist.dna(CytB_alignment2_DNAbin, model = "TN93", as.matrix = T, pairwise.deletion = T)
+
 class(CytB_distMatrix) #matrix array
 summary(as.vector(CytB_distMatrix))
 
@@ -589,8 +617,20 @@ Cytb_clusters <- IdClusters(CytB_distMatrix,
                            showPlot = TRUE,
                            type = "both",
                            verbose = TRUE)
+
+#DJ. Using new TN93 clustering make another dendrogram to compare to K80. 
+TN93_clusters <- IdClusters(TN93_distMatrix,
+                            method = "NJ",
+                            cutoff = 0.1,
+                            showPlot = TRUE,
+                            type = "both",
+                            verbose = TRUE)
+#DJ. The tree looks mostly the same, apart from a few sequences being grouped better in the top right corner.
 par(mar = c(2,2,2,2)) #Setting back to default.
 
+#DJ. Check to see if the clusters different from K80
+all.equal(TNp3_clusters[1], Cytb_clusters[1])
+#DJ. All of the records have been placed into the same cluster, despite minor adjustments in postion.
 
 #Comment on error
 #Duplicated labels in myDistMatrix appended with index.
@@ -691,7 +731,7 @@ View(matrixGBIF)
 
 
 #Convert the character matrix into a numeric matrix; a numerical matrix is needed for the use of the function phylo.to.map(). Credit for using the apply() function goes to Jacqueline May. I had forgotten to realize that a matrix can only hold one type of vector. When I was just using as.numeric(), the matrix went from having a dimension of 1:458, 1:2 to 1:966. After talking to Jacqueline and reading the documentation of the function, I now know that apply() can be used for matrix just like laaply() can be used for a data frame.
-matrixGBIF <- apply(matrixGBIF, 2, as.numeric) 
+matrixGBIF <- apply(X = matrixGBIF, MARGIN = 2, FUN = as.numeric) 
 
 #Convert rownames into the species name for each record.
 rownames(matrixGBIF) <- dfGBIF$species
@@ -723,7 +763,8 @@ CanisPhyloMap <- phytools::phylo.to.map(tree = CanisUltra, coords = matrixGBIF, 
 
 #Plotting the map using the associated colors.
 
-phytools::plot.phylo.to.map(x = CanisPhyloMap, rotate = TRUE, type = "phylogram", colors = CanisColors, from.tip = T, lwd = 2, psize = 2, ftype = "b")
+phytools::plot.phylo.to.map(x = CanisPhyloMap, rotate = TRUE, type = "phylogram", colors = CanisColors, from.tip = T, lwd = 2, psize = 2, ftype = "b", asp = 4/3) #DJ. Added aspect ratio. This allowed you to see all 4 species after running the plot the first time. The plot is still cut off and needs to be run again to show properly.
+
 #For some reason, the full phylogram does not show the first time you run this line; have to run it again for full coverage. I can't find an explanation as to why this happens.
 
 
