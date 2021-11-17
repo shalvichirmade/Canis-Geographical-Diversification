@@ -1,6 +1,7 @@
 #### BINF 6210 - Assignment 2 - Due Friday October 29, 2021 by 5 pm ----
 # By Shalvi Chirmade
-
+# Secondary author: David Jamieson
+# Tertiary authors: Emily Maier, Eden Blanchard
 
 ### HOW DOES GEOGRAPHY RELATE TO DIVERSIFICATION OF THE GENUS CANIS?
 
@@ -273,22 +274,42 @@ View(dfSpecies)
 
 #There are 411 sequences of Canis latrans. After aligning all these sequences, I noticed that they were very similar. I checked a few of the accession numbers on the web browser to make sure they match to Canis latrans. To have a smaller data set and to allow for better alignment, I will be randomly selecting 20 records from this species to better align my sequences for the final analysis. 
 
+#Decided to write this as a function. This adds predictability to the code allowing the user to easily change the species or sample size number. Could also use this function for any data frames with a column named "Species_Name".
+sample.species <- function(df, species, n){
+  #Filter only the species we're interested in.
+  dfsample <- df %>%
+    filter(Species_Name == species)
+  #Sample for the number of records we want.
+  dfspec <- sample_n(tbl = dfsample, size = n)
+  #Create a data frame with all other records
+  dfrest <- df %>%
+    filter(!Species_Name == species)
+  #Rbind the two data frames together
+  df <- rbind(dfspec, dfrest)
+  #Return the new data frame.
+  return(df)
+  
+}
+set.seed(2021)
+#Limit the number of records to 20 for the species Canis latrans
+dfNCBI_CanisCytB <- sample.species(df = dfNCBI_CanisCytB, species = "Canis latrans", n = 20)
+
 
 #First create a data frame with just Canis latrans and then randomly select 20 records. Setting seed so the records will be reproducible.
-dfCanislatrans <- dfNCBI_CanisCytB %>%
-  filter(Species_Name == "Canis latrans")
-
-set.seed(2021)
-dfCanislatrans <- dfCanislatrans %>%
-  sample_n(20)
-
-dim(dfCanislatrans)
-unique(dfCanislatrans$Species_Name)
-
-#Next, create a second data frame with all the other species records.
-dfOthers <- dfNCBI_CanisCytB %>%
-  filter(!Species_Name == "Canis latrans")
-View(dfOthers)
+#dfCanislatrans <- dfNCBI_CanisCytB %>%
+#  filter(Species_Name == "Canis latrans")
+#
+#set.seed(2021)
+#dfCanislatrans <- dfCanislatrans %>%
+#  sample_n(20)
+#
+#dim(dfCanislatrans)
+#unique(dfCanislatrans$Species_Name)
+#
+##Next, create a second data frame with all the other species records.
+#dfOthers <- dfNCBI_CanisCytB %>%
+#  filter(!Species_Name == "Canis latrans")
+#View(dfOthers)
 
 #Now merge these two data frames and overwrite previously created dfNCBI_CanisCytB.
 dfNCBI_CanisCytB <- base::rbind(dfCanislatrans, dfOthers)
