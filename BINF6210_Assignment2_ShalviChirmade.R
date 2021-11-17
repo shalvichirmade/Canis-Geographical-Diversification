@@ -228,12 +228,14 @@ unique(dfNCBI_CanisCytB$Species_Name)
 #It has been removed.
 
 #Remove the third word in Species_Name if it is not part of the taxonomic identity.
-dfNCBI_CanisCytB <- dfNCBI_CanisCytB %>%
-  mutate(Species_Name = str_remove(Species_Name, " isolate")) %>%
-  mutate(Species_Name = str_remove(Species_Name, " haplotype")) %>%
-  mutate(Species_Name = str_remove(Species_Name, " cytochrome")) %>%
-  mutate(Species_Name = str_remove(Species_Name, " mitochondrion")) %>%
-  mutate(Species_Name = str_remove(Species_Name, " voucher"))
+dfNCBI_CanisCytB$Species_Name <- str_remove(dfNCBI_CanisCytB$Species_Name, " isolate| haplotype| cytochrome| mitochondrion| voucher")
+
+#dfNCBI_CanisCytB <- dfNCBI_CanisCytB %>%
+#  mutate(Species_Name = str_remove(Species_Name, " isolate")) %>%
+#  mutate(Species_Name = str_remove(Species_Name, " haplotype")) %>%
+#  mutate(Species_Name = str_remove(Species_Name, " cytochrome")) %>%
+#  mutate(Species_Name = str_remove(Species_Name, " mitochondrion")) %>%
+#  mutate(Species_Name = str_remove(Species_Name, " voucher"))
 #Added a space before the word so it takes away the end space in the column.
 
 #Find a way to do this all in one line. The next few lines show what doesn't work.
@@ -348,12 +350,14 @@ dim(dfGBIF_Subset)
 class(dfGBIF_Subset)
 
 #Check to see if all records have the same kingdom, phylum, class, order, family and genus. Comment on anomalies.
-unique(dfGBIF_Subset$kingdom)
-unique(dfGBIF_Subset$phylum)
-unique(dfGBIF_Subset$class)
-unique(dfGBIF_Subset$order)
-unique(dfGBIF_Subset$family)
-unique(dfGBIF_Subset$genus)
+apply(X = dfGBIF_Subset[, c("kingdom", "phylum", "class", "order", "family", "genus")], MARGIN = 2, FUN = unique)
+
+#unique(dfGBIF_Subset$kingdom)
+#unique(dfGBIF_Subset$phylum)
+#unique(dfGBIF_Subset$class)
+#unique(dfGBIF_Subset$order)
+#unique(dfGBIF_Subset$family)
+#unique(dfGBIF_Subset$genus)
 #There are no anomalies or even NAs!
 
 
@@ -500,7 +504,7 @@ length(CytB_alignment[[1]])
 #After the alignment, this particular sequence went from 369 sequences to 566. As seen in the visual alignment, there were multiple gaps added at the beginning, middle and end of the sequence to allow for species gene variability.
 
 #Let's look at the mean number of gaps in the alignment.
-mean(unlist(lapply(CytB_alignment, str_count, "-"))) #203.026
+mean(unlist(lapply(X = CytB_alignment, FUN = str_count, pattern = "-"))) #203.026
 #We can see that the alignment has caused an average of 203 gaps being added to each sequence. 
 
 #I also viewed this sequence alignment in MEGA; I can see a lot of variability in about ten sequences out of the total. Even after translation, a huge variety of amino acids are seen for those particular sequences.
@@ -691,7 +695,7 @@ View(matrixGBIF)
 
 
 #Convert the character matrix into a numeric matrix; a numerical matrix is needed for the use of the function phylo.to.map(). Credit for using the apply() function goes to Jacqueline May. I had forgotten to realize that a matrix can only hold one type of vector. When I was just using as.numeric(), the matrix went from having a dimension of 1:458, 1:2 to 1:966. After talking to Jacqueline and reading the documentation of the function, I now know that apply() can be used for matrix just like laaply() can be used for a data frame.
-matrixGBIF <- apply(matrixGBIF, 2, as.numeric) 
+matrixGBIF <- apply(X = matrixGBIF, MARGIN = 2, FUN = as.numeric) 
 
 #Convert rownames into the species name for each record.
 rownames(matrixGBIF) <- dfGBIF$species
