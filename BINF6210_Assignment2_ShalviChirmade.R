@@ -274,24 +274,24 @@ View(dfSpecies)
 
 #There are 411 sequences of Canis latrans. After aligning all these sequences, I noticed that they were very similar. I checked a few of the accession numbers on the web browser to make sure they match to Canis latrans. To have a smaller data set and to allow for better alignment, I will be randomly selecting 20 records from this species to better align my sequences for the final analysis. 
 
-#Decided to write this as a function. This adds predictability to the code allowing the user to easily change the species or sample size number. Could also use this function for any data frames with a column named "Species_Name".
+#DJ. Decided to write this as a function. This adds predictability to the code allowing the user to easily change the species or sample size number. Could also use this function for any data frames with a column named "Species_Name".
 sample.species <- function(df, species, n){
-  #Filter only the species we're interested in.
+  #DJ. Filter only the species we're interested in.
   dfsample <- df %>%
     filter(Species_Name == species)
-  #Sample for the number of records we want.
+  #DJ. Sample for the number of records we want.
   dfspec <- sample_n(tbl = dfsample, size = n)
-  #Create a data frame with all other records
+  #DJ. Create a data frame with all other records
   dfrest <- df %>%
     filter(!Species_Name == species)
-  #Rbind the two data frames together
+  #DJ. Rbind the two data frames together
   df <- rbind(dfspec, dfrest)
-  #Return the new data frame.
+  #DJ. Return the new data frame.
   return(df)
   
 }
 set.seed(2021)
-#Limit the number of records to 20 for the species Canis latrans
+#DJ. Limit the number of records to 20 for the species Canis latrans
 dfNCBI_CanisCytB <- sample.species(df = dfNCBI_CanisCytB, species = "Canis latrans", n = 20)
 
 
@@ -600,6 +600,9 @@ CytB_alignment2_DNAbin <- as.DNAbin(CytB_alignment2)
 #Create a distance matrix using the chosen model. 
 CytB_distMatrix <- dist.dna(CytB_alignment2_DNAbin, model = "K80", as.matrix = TRUE, pairwise.deletion = TRUE) #pairwise deletion - missing data will be ignored in a pairwise fashion, can lose a lot of information if you use complete deletions
 
+#DJ. TN93 is a more sophisticated model than K80. It may change the clustering results for our data
+TN93_distMatrix <- dist.dna(CytB_alignment2_DNAbin, model = "TN93", as.matrix = T, pairwise.deletion = T)
+
 class(CytB_distMatrix) #matrix array
 summary(as.vector(CytB_distMatrix))
 
@@ -614,8 +617,20 @@ Cytb_clusters <- IdClusters(CytB_distMatrix,
                            showPlot = TRUE,
                            type = "both",
                            verbose = TRUE)
+
+#DJ. Using new TN93 clustering make another dendrogram to compare to K80. 
+TN93_clusters <- IdClusters(TN93_distMatrix,
+                            method = "NJ",
+                            cutoff = 0.1,
+                            showPlot = TRUE,
+                            type = "both",
+                            verbose = TRUE)
+#DJ. The tree looks mostly the same, apart from a few sequences being grouped better in the top right corner.
 par(mar = c(2,2,2,2)) #Setting back to default.
 
+#DJ. Check to see if the clusters different from K80
+all.equal(TNp3_clusters[1], Cytb_clusters[1])
+#DJ. All of the records have been placed into the same cluster, despite minor adjustments in postion.
 
 #Comment on error
 #Duplicated labels in myDistMatrix appended with index.
@@ -748,7 +763,8 @@ CanisPhyloMap <- phytools::phylo.to.map(tree = CanisUltra, coords = matrixGBIF, 
 
 #Plotting the map using the associated colors.
 
-phytools::plot.phylo.to.map(x = CanisPhyloMap, rotate = TRUE, type = "phylogram", colors = CanisColors, from.tip = T, lwd = 2, psize = 2, ftype = "b")
+phytools::plot.phylo.to.map(x = CanisPhyloMap, rotate = TRUE, type = "phylogram", colors = CanisColors, from.tip = T, lwd = 2, psize = 2, ftype = "b", asp = 4/3) #DJ. Added aspect ratio. This allowed you to see all 4 species after running the plot the first time. The plot is still cut off and needs to be run again to show properly.
+
 #For some reason, the full phylogram does not show the first time you run this line; have to run it again for full coverage. I can't find an explanation as to why this happens.
 
 
